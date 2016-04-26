@@ -29,7 +29,7 @@ def get_trainM(filepath):
             movie_size = max(movie_size, movie_num)
 
             line = f.readline().strip()
-    trainM = csr_matrix((score, (user, movie)), shape=(user_size+1, movie_size+1))  # including 0
+    trainM = csr_matrix((score, (user, movie)), shape=(user_size+1, movie_size+1))  # because user & movie index starts from 0; total user number should be user_size+1
     return trainM
 
 

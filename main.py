@@ -19,6 +19,7 @@ from scipy import *
 from preprocess import get_trainM, get_qmM
 from user_sim import get_user_user_pred, uu_output
 from movie_sim import get_movie_movie_pred, mm_output
+from matrix_factorization import pmf
 
 
 def main(argv):
@@ -26,16 +27,16 @@ def main(argv):
     t0 = time.time()
 
     # PARAMETERS
-    model_arg = sys.argv[1]
-    sim_arg = sys.argv[2]
-    weight_arg = sys.argv[3]
-    k = int(sys.argv[4])
-    dev_filepath = '../../data/HW4_data/test.csv'
-    test_filepath = '../../data/HW4_data/test.csv'
-    train_filepath = '../../data/HW4_data/train.csv'
-    dev_query_filepath = '../../data/HW4_data/dev.queries'
-    test_query_filepath = '../../data/HW4_data/test.queries'
-    output_filepath = sys.argv[5]
+    model_arg = sys.argv[1]         # [uu|mm|pcc|pmf]
+    sim_arg = sys.argv[2]           # [dot|cosine]
+    weight_arg = sys.argv[3]        # [mean|weight]
+    k = int(sys.argv[4])            # value of k in knn
+    output_filepath = sys.argv[5]   # output filepath
+    dev_filepath = '../../resources/HW4_data/test.csv'
+    test_filepath = '../../resources/HW4_data/test.csv'
+    train_filepath = '../../resources/HW4_data/train.csv'
+    dev_query_filepath = '../../resources/HW4_data/dev.queries'
+    test_query_filepath = '../../resources/HW4_data/test.queries'
 
     # DATA PREPROCESSING
     # read train data -> preprocessing into vectors -> imputation
@@ -43,7 +44,6 @@ def main(argv):
     # save target <query, movie> pairs to be predicted into a matrix
     mu_list = []
     qmM = get_qmM(dev_filepath, mu_list)
-
 
     # ==========/ EXP 1(uu) /========== #
     if model_arg == 'uu':
@@ -65,6 +65,10 @@ def main(argv):
         mm_pred_dic = get_movie_movie_pred(qmM, trainM, k, sim_arg, weight_arg, model_arg)
         mm_output(mm_pred_dic, mu_list, dev_filepath, output_filepath)
     print time.time() - t0, "seconds wall time"
+
+    # ==========/ EXP 4(pmf) /========== #
+    if model_arg == 'pmf':
+        pmf(trainM)
 
 
 if __name__ == '__main__':
