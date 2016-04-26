@@ -20,6 +20,7 @@ from preprocess import get_trainM, get_qmM
 from user_sim import get_user_user_pred, uu_output
 from movie_sim import get_movie_movie_pred, mm_output
 from matrix_factorization import pmf
+from colb_ranking import gen_train
 
 
 def main(argv):
@@ -40,7 +41,7 @@ def main(argv):
 
     # DATA PREPROCESSING
     # read train data -> preprocessing into vectors -> imputation
-    trainM = get_trainM(train_filepath)  # get a sparse M as training set, <user, movie>[score]
+    trainM, five_star_um_dic, one_star_um_dic = get_trainM(train_filepath)  # get a sparse M as training set, <user, movie>[score]
     # save target <query, movie> pairs to be predicted into a matrix
     mu_list = []
     qmM = get_qmM(dev_filepath, mu_list)
@@ -64,12 +65,16 @@ def main(argv):
     if model_arg == 'pcc':
         mm_pred_dic = get_movie_movie_pred(qmM, trainM, k, sim_arg, weight_arg, model_arg)
         mm_output(mm_pred_dic, mu_list, dev_filepath, output_filepath)
-    print time.time() - t0, "seconds wall time"
 
     # ==========/ EXP 4(pmf) /========== #
     if model_arg == 'pmf':
-        pmf(trainM)
+        U, V = pmf(trainM)
 
+    # ==========/ Collaborative Ranking / ========== #
+    gen_train(trainM, U, V, five_star_um_dic, one_star_um_dic)
+
+
+    print time.time() - t0, "seconds wall time"
 
 if __name__ == '__main__':
     main(sys.argv[1:])

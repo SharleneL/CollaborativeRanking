@@ -14,6 +14,10 @@ def get_trainM(filepath):
     user_size = 0
     movie_size = 0
 
+    # save <uid, mid_list>
+    five_star_um_dic = dict()
+    one_star_um_dic = dict()
+
     with open(filepath) as f:
         line = f.readline().strip()
         while line != '':
@@ -28,9 +32,23 @@ def get_trainM(filepath):
             user_size = max(user_size, user_num)
             movie_size = max(movie_size, movie_num)
 
+            # update dictionaries
+            if score_num == 5:
+                if user_num in five_star_um_dic:
+                    five_star_um_dic[user_num].append(movie_num)
+                else:
+                    mid_list = [movie_num]
+                    five_star_um_dic[user_num] = mid_list
+            if score_num == 1:
+                if user_num in one_star_um_dic:
+                    one_star_um_dic[user_num].append(movie_num)
+                else:
+                    mid_list = [movie_num]
+                    one_star_um_dic[user_num] = mid_list
+
             line = f.readline().strip()
     trainM = csr_matrix((score, (user, movie)), shape=(user_size+1, movie_size+1))  # because user & movie index starts from 0; total user number should be user_size+1
-    return trainM
+    return trainM, five_star_um_dic, one_star_um_dic
 
 
 def get_qmM(filepath, mu_list):
