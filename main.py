@@ -1,5 +1,6 @@
 # RUNNING COMMAND:
-# python main.py [uu/mm/pcc/mf] [cosine/dot] [mean/weight] [k] [output_filepath]
+# python main.py [uu|mm|pcc|pmf|colbrk-svm|colbrk-lr] [dot|cosine] [mean|weight] [k] [latent_factor_num] [output_filepath]
+# *example* python main.py colbrk-lr dot mean 5 20 ../../code_output/hw6/lr_test
 
 __author__ = 'luoshalin'
 
@@ -21,6 +22,8 @@ from user_sim import get_user_user_pred, uu_output
 from movie_sim import get_movie_movie_pred, mm_output
 from matrix_factorization import pmf_train, pmf_pred, pmf_output
 from colb_ranking import get_colbrk_train, get_colbrk_pred, svm, colb_ranking_output, analyze
+from lr.lr import lr_train_param, lr_predict
+from lr.evaluate import print_pred_res
 
 
 def main(argv):
@@ -74,15 +77,50 @@ def main(argv):
         pmf_pred_res_list = pmf_pred(U, V, pred_uid_list, pred_mid_list)
         pmf_output(pmf_pred_res_list, output_filepath)
         print "pmf END!"
-    print time.time() - t0, "seconds wall time"
-    return
 
     # ==========/ Collaborative Ranking / ========== #
-    train_v_list, train_y_list = get_colbrk_train(trainM, U, V, five_star_um_dic, one_star_um_dic)
-    analyze(train_y_list, obsv_rating_num, five_star_um_dic, one_star_um_dic)
-    dev_v_list = get_colbrk_pred(pred_uid_list, pred_mid_list, U, V)  # the vector list to predict
-    dev_pred_res_list = svm(train_v_list, train_y_list, dev_v_list)
-    colb_ranking_output(dev_pred_res_list, output_filepath)
+    if model_arg == 'colbrk-svm' or 'colbrk-lr':
+        # GENERATE pmf U, V
+        U, V = pmf_train(trainM, latent_num)
+        # GENERATE TRAINING INPUT
+        train_v_list, train_y_list, lr_train_M, lr_train_stars_M = get_colbrk_train(trainM, U, V, five_star_um_dic, one_star_um_dic)  # contain a list of v features(list of list) & a list of labels(list of number)
+        # DATASET STATISTICS
+        # analyze(train_y_list, obsv_rating_num, five_star_um_dic, one_star_um_dic)
+        # GENERATE PREDICT INPUT
+        print 'line91'
+        dev_v_list = get_colbrk_pred(pred_uid_list, pred_mid_list, U, V)  # the vector list to predict
+
+        # MODEL#1: svm (train & predict)
+        if model_arg == 'colbrk-svm':
+            dev_pred_res_list = svm(train_v_list, train_y_list, dev_v_list)
+            colb_ranking_output(dev_pred_res_list, output_filepath)
+
+        elif model_arg == 'colbrk-lr':
+            # MODEL#2: lr
+            # lr train
+            print "line93"
+            lr_eval_M = lr_train_M                  # lr_train_M and eval_M are both sparseM, each line is a vector; use the trainM as the evalM
+            lr_eval_stars_M = lr_train_stars_M      # lr_stars_train_M and stars_eval_M are both sparseM, each line is a vector; use the trainM as the evalM
+
+            feature_num = latent_num
+            lmd = 0.01                          # lambda
+            alpha = 0.001                       # learning rate
+            threshold = 10E-6                   # stopping criteria; changing rate of log likelihood
+            gd_method = 'bsga'                  # gradient ascend method: fill in with [sga] or [bsga]
+            batch_size = 200
+            print "line103"
+            W_org = np.ones(shape=(feature_num, 2)) * float(1)/feature_num  # class_num = 2 (2 categories)
+            W = lr_train_param(lr_train_M, lr_train_stars_M, W_org, lr_eval_M, lr_eval_stars_M, lmd, alpha, threshold, gd_method, batch_size)  # eval_M is the evaluation dataset
+            print "line105"
+
+            # lr predict
+            lr_dev_M = sparse.csr_matrix(np.array(dev_v_list))          # convert list of list to csr matrix
+            print "line110"
+            test_pred_list_hard, test_pred_list_soft = lr_predict(lr_dev_M, W)
+            print "line112"
+            # output test/dev evaluation results to file
+            print_pred_res(test_pred_list_hard, test_pred_list_soft, output_filepath)
+
 
     print "END!"
     print time.time() - t0, "seconds wall time"

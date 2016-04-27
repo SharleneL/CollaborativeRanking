@@ -13,8 +13,8 @@ def pmf_train(R, latent_num):
     step = 0.0001
     itr = 200
     # threshold = 2000  # stopping criteria
-    threshold = 10e-3  # stopping criteria
-    # threshold = 0.2  # stopping criteria
+    # threshold = 10e-3  # stopping criteria
+    threshold = 0.2  # stopping criteria
 
     # MATRIX
     # R: trainM
@@ -44,7 +44,7 @@ def pmf_train(R, latent_num):
             break
         last_error = cal_error(R, U, V, I)
 
-        print "Iteration #" + str(i) + "; Err changing ratio: " + str(error_ratio)
+        print "|pmf_train| Iteration #" + str(i) + "; Err changing ratio: " + str(error_ratio)
     return U, V
 
 

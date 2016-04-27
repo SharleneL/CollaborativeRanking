@@ -2,6 +2,9 @@ __author__ = 'luoshalin'
 
 import numpy as np
 from sklearn.svm import SVC
+from scipy import *
+from scipy import sparse
+from scipy.sparse import *
 
 
 def get_colbrk_train(R, U, V, five_star_um_dic, one_star_um_dic):  # R: sparse matrix  U,V: np matrix
@@ -11,10 +14,14 @@ def get_colbrk_train(R, U, V, five_star_um_dic, one_star_um_dic):  # R: sparse m
     v_list = []  # vector list
     y_list = []  # label list
 
+    lr_y_row = []   # for lr sparse matrix
+    lr_y_col = []   # col=0 if label_y=-1; col=1 if label_y=1
+    lr_y_data = []  # =1 if belong to current row, =0 o.w.
+
     for u in five_star_um_dic.keys():
         if u not in one_star_um_dic:
             continue
-        print "user#" + str(u)
+        print "|get_colbrk_train| user#" + str(u)
         # for user existing both in five & one star dic
         five_star_mid_list = five_star_um_dic[u]  # list of mids
         one_star_mid_list = one_star_um_dic[u]
@@ -30,18 +37,39 @@ def get_colbrk_train(R, U, V, five_star_um_dic, one_star_um_dic):  # R: sparse m
                 v_2 = np.multiply(U[u], V[j]) - np.multiply(U[u], V[i])  # v_ij, is a matrix
                 v_2 = np.asarray(v_2)[0]  # is an array
 
-                # save <v_1, y_1> and <v_2, y_2> into training matrix T
+                # save <v_1, y_1> and <v_2, y_2> into training data list
                 v_list.append(v_1)
                 v_list.append(v_2)
                 y_list.append(y_1)
                 y_list.append(y_2)
-    return v_list, y_list
+
+                # save label y into sparse matrix list
+                # col & data
+                if y_1 == -1:
+                    lr_y_col.append(0)
+                    lr_y_data.append(1)
+                else:
+                    lr_y_col.append(1)
+                    lr_y_data.append(1)
+                if y_2 == -1:
+                    lr_y_col.append(0)
+                    lr_y_data.append(1)
+                else:
+                    lr_y_col.append(1)
+                    lr_y_data.append(1)
+                # data
+    # construct v_M
+    lr_v_M = sparse.csr_matrix(np.array(v_list))    # convert vector list into sparse matrix, for lr use
+    # construct y_M
+    lr_y_row = range(len(lr_y_col))
+    lr_y_M = csr_matrix((lr_y_data, (lr_y_row, lr_y_col)), shape=(len(lr_y_row), 2))   # col number = 2 (either -1 or 1)
+    return v_list, y_list, lr_v_M, lr_y_M
 
 
 def get_colbrk_pred(uid_list, mid_list, U, V):
     pred_v_list = []
     for uid, mid in zip(uid_list, mid_list):
-        v = np.multiply(U[uid], V[mid])
+        v = np.asarray(np.multiply(U[uid], V[mid]))[0]
         pred_v_list.append(v)
     return pred_v_list
 
