@@ -5,16 +5,10 @@ from scipy import *
 import sys
 
 
-def pmf_train(R, latent_num):
+def pmf_train(R, latent_num, lmd, step, itr, threshold):
     # -------/ INITIALIZATION /------- #
     # PARAMS
     d = latent_num  # the feature number dimension of U & V (n_factor)
-    lmd = 0.01
-    step = 0.0001
-    itr = 200
-    # threshold = 2000  # stopping criteria
-    # threshold = 10e-3  # stopping criteria
-    threshold = 0.2  # stopping criteria
 
     # MATRIX
     # R: trainM

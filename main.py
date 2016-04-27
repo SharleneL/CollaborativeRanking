@@ -23,27 +23,45 @@ from movie_sim import get_movie_movie_pred, mm_output
 from matrix_factorization import pmf_train, pmf_pred, pmf_output
 from colb_ranking import get_colbrk_train, get_colbrk_pred, svm, colb_ranking_output, analyze
 from lr.lr import lr_train_param, lr_predict
-from lr.evaluate import print_pred_res
 
 
 def main(argv):
     # TIMER
     t0 = time.time()
 
-    # PARAMETERS
+    # ========== / PARAMETERS / ========== #
+    # --- / CMD PARAMS / --- #
     model_arg = sys.argv[1]         # [uu|mm|pcc|pmf]
     sim_arg = sys.argv[2]           # [dot|cosine]
     weight_arg = sys.argv[3]        # [mean|weight]
     k = int(sys.argv[4])            # value of k in knn
-    latent_num = int(sys.argv[5])   # value of latent factor num in pmf
+    latent_num = int(sys.argv[5])   # value of pmf latent factor num
     output_filepath = sys.argv[6]   # output filepath
+
+    # --- / FILEPATH PARAMS / --- #
     dev_filepath = '../../resources/HW4_data/test.csv'
     test_filepath = '../../resources/HW4_data/test.csv'
     train_filepath = '../../resources/HW4_data/train.csv'
     dev_query_filepath = '../../resources/HW4_data/dev.queries'
     test_query_filepath = '../../resources/HW4_data/test.queries'
 
-    # DATA PREPROCESSING
+    # --- / PMF PARAMS - IF USED / --- #
+    pmf_lmd = 0.01
+    pmf_step = 0.0001
+    pmf_itr = 200
+    pmf_threshold = 10e-3  # stopping criteria
+    # pmf_threshold = 0.2  # stopping criteria - test
+
+    # --- / LOGISTIC REGRESSION PARAMS - IF USED / --- #
+    lr_feature_num = latent_num
+    lr_lmd = 0.01                          # lambda
+    lr_alpha = 0.001                       # learning rate
+    lr_threshold = 10E-6                   # stopping criteria; changing rate of log likelihood
+    # lr_threshold = 10E-3                   # stopping criteria - test
+    lr_gd_method = 'bsga'                  # gradient ascend method: fill in with [sga] or [bsga]
+    lr_batch_size = 200
+
+    # ========== / DATA PREPROCESSING / ========== #
     # read train data -> preprocessing into vectors -> imputation
     trainM, five_star_um_dic, one_star_um_dic, obsv_rating_num = get_trainM(train_filepath)  # get a sparse M as training set, <user, movie>[score]
     # save target <query, movie> pairs to be predicted into a matrix
@@ -81,7 +99,7 @@ def main(argv):
     # ==========/ Collaborative Ranking / ========== #
     if model_arg == 'colbrk-svm' or 'colbrk-lr':
         # GENERATE pmf U, V
-        U, V = pmf_train(trainM, latent_num)
+        U, V = pmf_train(trainM, latent_num, pmf_lmd, pmf_step, pmf_itr, pmf_threshold)
         # GENERATE TRAINING INPUT
         train_v_list, train_y_list, lr_train_M, lr_train_stars_M = get_colbrk_train(trainM, U, V, five_star_um_dic, one_star_um_dic)  # contain a list of v features(list of list) & a list of labels(list of number)
         # DATASET STATISTICS
@@ -102,26 +120,17 @@ def main(argv):
             lr_eval_M = lr_train_M                  # lr_train_M and eval_M are both sparseM, each line is a vector; use the trainM as the evalM
             lr_eval_stars_M = lr_train_stars_M      # lr_stars_train_M and stars_eval_M are both sparseM, each line is a vector; use the trainM as the evalM
 
-            feature_num = latent_num
-            lmd = 0.01                          # lambda
-            alpha = 0.001                       # learning rate
-            # threshold = 10E-6                   # stopping criteria; changing rate of log likelihood
-            threshold = 10E-3                   # stopping criteria; test
-            gd_method = 'bsga'                  # gradient ascend method: fill in with [sga] or [bsga]
-            batch_size = 200
             print "line103"
-            W_org = np.ones(shape=(feature_num, 2)) * float(1)/feature_num  # class_num = 2 (2 categories)
-            W = lr_train_param(lr_train_M, lr_train_stars_M, W_org, lr_eval_M, lr_eval_stars_M, lmd, alpha, threshold, gd_method, batch_size)  # eval_M is the evaluation dataset
+            W_org = np.ones(shape=(lr_feature_num, 2)) * float(1)/lr_feature_num  # class_num = 2 (2 categories)
+            W = lr_train_param(lr_train_M, lr_train_stars_M, W_org, lr_eval_M, lr_eval_stars_M, lr_lmd, lr_alpha, lr_threshold, lr_gd_method, lr_batch_size)  # eval_M is the evaluation dataset
             print "line105"
 
             # lr predict
             lr_dev_M = sparse.csr_matrix(np.array(dev_v_list))          # <#datapoint, #latentfactor> convert list of list(vector) to csr matrix - each row is a vector
             print "line110"
             lr_pred_res = lr_predict(lr_dev_M, W)
-            # output test/dev evaluation results to file
+            # output - save to file
             colb_ranking_output(lr_pred_res, output_filepath)
-            # print_pred_res(test_pred_list_hard, test_pred_list_soft, output_filepath)
-
 
     print "END!"
     print time.time() - t0, "seconds wall time"
