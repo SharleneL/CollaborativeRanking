@@ -1,14 +1,15 @@
 __author__ = 'luoshalin'
 
-import math
 import numpy as np
+from sklearn.svm import SVC
 
 
-def gen_train(R, U, V, five_star_um_dic, one_star_um_dic):  # R: sparse matrix  U,V: np matrix
+def get_colbrk_train(R, U, V, five_star_um_dic, one_star_um_dic):  # R: sparse matrix  U,V: np matrix
     user_size = R.shape[0]
     movie_size = R.shape[1]
 
-    user_index_list, movie_index_list = R.nonzero()
+    v_list = []  # vector list
+    y_list = []  # label list
 
     for u in five_star_um_dic.keys():
         if u not in one_star_um_dic:
@@ -30,19 +31,50 @@ def gen_train(R, U, V, five_star_um_dic, one_star_um_dic):  # R: sparse matrix  
                 v_2 = np.asarray(v_2)[0]  # is an array
 
                 # save <v_1, y_1> and <v_2, y_2> into training matrix T
+                v_list.append(v_1)
+                v_list.append(v_2)
+                y_list.append(y_1)
+                y_list.append(y_2)
+    return v_list, y_list
 
 
+def get_colbrk_pred(uid_list, mid_list, U, V):
+    pred_v_list = []
+    for uid, mid in zip(uid_list, mid_list):
+        v = np.multiply(U[uid], V[mid])
+        pred_v_list.append(v)
+    return pred_v_list
 
-    # for u in user_index_list:  # for each user, examine each movie pair
-    #     print "user #" + str(u)
-    #     for index_i in range(len(movie_index_list)):
-    #         i = movie_index_list[index_i]
-    #         for index_j in range(index_i+1, len(movie_index_list)):  # movie pair <i, j>
-    #             j = movie_index_list[index_j]
-    #             diff_R = R[u, i] - R[u, j]
-    #             if abs(diff_R) == 4:
-    #                 y = diff_R / abs(diff_R)  # y_ij
-    #                 v = np.multiply(U[u], V[i]) - np.multiply(U[u], V[j])  # v_ij, is a matrix
-    #                 v = np.asarray(v)[0]  # is an array
-    #                 # save <v_ij, y_ij> into training matrix T
-    return
+
+def svm(train_v_list, train_y_list, pred_v_list):  # T is the input matrix
+    # train
+    print "SVM model: begin training..."
+    svm_model = SVC()
+    svm_model.fit(train_v_list, train_y_list)
+    print "### SVM model: end training! ###\n"
+    # predict
+    print "Begin predicting SVM model..."
+    pred_res_list = svm_model.predict(pred_v_list)
+    print "### SVM model: end predicting! ###\n"
+    return pred_res_list
+
+
+def colb_ranking_output(res_list, output_filepath):
+    with open(output_filepath, 'a') as f_output:
+        for res in res_list:
+            f_output.write(str(res) + '\n')
+
+
+def analyze(train_y_list, obsv_rating_num, five_star_um_dic, one_star_um_dic):
+    T_train_num = len(train_y_list)
+    T_pos_neg_ratio = float(sum(1 for x in train_y_list if x > 0)) / float(sum(1 for x in train_y_list if x < 0))
+    T_train_1234 = len(five_star_um_dic[1234]) * len(one_star_um_dic[1234]) * 2
+    T_train_4321 = len(five_star_um_dic[4321]) * len(one_star_um_dic[4321]) * 2
+
+    print "\n# ----- # TRAINING SET STATISTICS * START # ----- #"
+    print "Total number of observed ratings in R: " + str(obsv_rating_num)
+    print "Total number of training examples in T: " + str(T_train_num)
+    print "Ratio of positive examples to negative examples in T: " + str(T_pos_neg_ratio)
+    print "Number of training examples in T for user ID 1234: " + str(T_train_1234)
+    print "Number of training examples in T for user ID 4321: " + str(T_train_4321)
+    print "# ----- # TRAINING SET STATISTICS * END # ----- #\n"

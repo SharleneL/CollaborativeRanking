@@ -5,16 +5,16 @@ from scipy import *
 import sys
 
 
-def pmf(R):
+def pmf_train(R, latent_num):
     # -------/ INITIALIZATION /------- #
     # PARAMS
-    d = 20  # the feature number dimension of U & V (n_factor)
+    d = latent_num  # the feature number dimension of U & V (n_factor)
     lmd = 0.01
     step = 0.0001
     itr = 200
     # threshold = 2000  # stopping criteria
-    # threshold = 10e-4  # stopping criteria
-    threshold = 0.2  # stopping criteria
+    threshold = 10e-3  # stopping criteria
+    # threshold = 0.2  # stopping criteria
 
     # MATRIX
     # R: trainM
@@ -52,3 +52,18 @@ def cal_error(R, U, V, I):
     error = np.sum((I * np.asarray((R - np.dot(U, V.T)), dtype=np.float64)) ** 2)
     # error = np.sum((I * (R - np.dot(U, V.T))) ** 2)
     return error
+
+
+def pmf_pred(U, V, pred_uid_list, pred_mid_list):
+    pred_res_list = []
+    for uid, mid in zip(pred_uid_list, pred_mid_list):
+        res_M = U[uid] * V[mid].T  # a matrix
+        res = res_M[0, 0] + 3          # a number
+        pred_res_list.append(round(res))
+    return pred_res_list
+
+
+def pmf_output(res_list, output_filepath):
+    with open(output_filepath, 'a') as f_output:
+        for res in res_list:
+            f_output.write(str(res)[0] + '\n')
