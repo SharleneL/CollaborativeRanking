@@ -63,21 +63,32 @@ def lr_train_param(x_M, y_M, W, eval_x_M, eval_y_M, lmd, alpha, threshold, metho
 
 # function to predict testing data's class
 # PARAMS:
-# x_M: data matrix; W: parameter matrix
+# x_M: sparse data matrix <#data point, #latent factor> (each row is a data point vector)
+# W: parameter matrix <#latent factor, #classes>  <20, 2>
 def lr_predict(x_M, W):
     n = x_M.get_shape()[0]    # total number of data points
     c = W.shape[1]            # total number of classes
 
-    numer_M = np.exp(W.T * x_M.T)
-    denom_arr = np.sum(numer_M, axis=0)             # sum by column
-    p_M = numer_M / denom_arr                       # p_M: each row is one class, each col is one data point, data is the prob of this data classified into this class
+    numer_M = np.exp(W.T * x_M.T)                   # <#classes, #datapoint>
+    denom_arr = np.sum(numer_M, axis=0)             # sum by column <1, #datapoint>
+    p_M = numer_M / denom_arr                       # p_M: <#classes, #datapoint>, each row is one class, each col is one data point, data is the prob of this data classified into this class
 
-    pred_res_hard = p_M.argmax(axis=0) + 1          # find the index of max value along each col, then + 1
+    # ORIGINAL LR - START #
+    # pred_res_hard = p_M.argmax(axis=0) + 1          # find the index of max value along each col, then + 1
+    #
+    # class_arr = np.asarray(list(range(1, c+1)))     # an arr [1, 5]
+    # pred_res_soft = np.dot(class_arr, p_M)          # a [1*n] arr, get weighed sum for each data point
+    # return pred_res_hard, pred_res_soft
+    # ORIGINAL LR - END #
 
-    class_arr = np.asarray(list(range(1, c+1)))     # an arr [1, 5]
-    pred_res_soft = np.dot(class_arr, p_M)          # a [1*n] arr, get weighed sum for each data point
+    # MODIFIED LR - START #
+    # p_v = p_M[1] - p_M[0]  # np array
+    p_v = W.T[1] - W.T[0]  # np array, <1, #latentfeature>
+    res_M = np.dot(x_M.toarray(), p_v.T)  # <#data point, #latent factor> * <#latentfeature, 1>
+    return res_M.tolist()
+    # MODIFIED LR - END #
 
-    return pred_res_hard, pred_res_soft
+
 
 
 # function to get the log-likelihood of param M

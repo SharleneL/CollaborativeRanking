@@ -105,7 +105,8 @@ def main(argv):
             feature_num = latent_num
             lmd = 0.01                          # lambda
             alpha = 0.001                       # learning rate
-            threshold = 10E-6                   # stopping criteria; changing rate of log likelihood
+            # threshold = 10E-6                   # stopping criteria; changing rate of log likelihood
+            threshold = 10E-3                   # stopping criteria; test
             gd_method = 'bsga'                  # gradient ascend method: fill in with [sga] or [bsga]
             batch_size = 200
             print "line103"
@@ -114,12 +115,12 @@ def main(argv):
             print "line105"
 
             # lr predict
-            lr_dev_M = sparse.csr_matrix(np.array(dev_v_list))          # convert list of list to csr matrix
+            lr_dev_M = sparse.csr_matrix(np.array(dev_v_list))          # <#datapoint, #latentfactor> convert list of list(vector) to csr matrix - each row is a vector
             print "line110"
-            test_pred_list_hard, test_pred_list_soft = lr_predict(lr_dev_M, W)
-            print "line112"
+            lr_pred_res = lr_predict(lr_dev_M, W)
             # output test/dev evaluation results to file
-            print_pred_res(test_pred_list_hard, test_pred_list_soft, output_filepath)
+            colb_ranking_output(lr_pred_res, output_filepath)
+            # print_pred_res(test_pred_list_hard, test_pred_list_soft, output_filepath)
 
 
     print "END!"
