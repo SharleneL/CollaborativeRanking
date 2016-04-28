@@ -8,9 +8,6 @@ from scipy.sparse import *
 
 
 def get_colbrk_train(R, U, V, five_star_um_dic, one_star_um_dic):  # R: sparse matrix  U,V: np matrix
-    user_size = R.shape[0]
-    movie_size = R.shape[1]
-
     v_list = []  # vector list
     y_list = []  # label list
 
@@ -57,7 +54,7 @@ def get_colbrk_train(R, U, V, five_star_um_dic, one_star_um_dic):  # R: sparse m
                 else:
                     lr_y_col.append(1)
                     lr_y_data.append(1)
-                # data
+
     # construct v_M
     lr_v_M = sparse.csr_matrix(np.array(v_list))    # convert vector list into sparse matrix, for lr use
     # construct y_M

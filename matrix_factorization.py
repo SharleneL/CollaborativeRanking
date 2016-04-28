@@ -29,7 +29,6 @@ def pmf_train(R, latent_num, lmd, step, itr, threshold):
     for i in range(itr):
         A = -np.multiply(I, (R - U.dot(V.T)))
         U = U - step * A.dot(V) + step * lmd * U
-        A = -np.multiply(I, (R - U.dot(V.T)))
         V = V - step * A.T.dot(U) + step * lmd * V
 
         new_error = cal_error(R, U, V, I)
@@ -44,15 +43,14 @@ def pmf_train(R, latent_num, lmd, step, itr, threshold):
 
 def cal_error(R, U, V, I):
     error = np.sum((I * np.asarray((R - np.dot(U, V.T)), dtype=np.float64)) ** 2)
-    # error = np.sum((I * (R - np.dot(U, V.T))) ** 2)
     return error
 
 
 def pmf_pred(U, V, pred_uid_list, pred_mid_list):
     pred_res_list = []
     for uid, mid in zip(pred_uid_list, pred_mid_list):
-        res_M = U[uid] * V[mid].T  # a matrix
-        res = res_M[0, 0] + 3          # a number
+        res_M = U[uid] * V[mid].T       # a matrix
+        res = res_M[0, 0] + 3           # a number
         pred_res_list.append(round(res))
     return pred_res_list
 
