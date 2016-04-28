@@ -74,7 +74,7 @@ def get_colbrk_pred(uid_list, mid_list, U, V):
     return pred_v_list
 
 
-def svm(train_v_list, train_y_list, pred_v_list):  # T is the input matrix
+def svm_train(train_v_list, train_y_list, pred_v_list):  # T is the input matrix
     # train
     print "SVM model: begin training..."
     svm_model = SVC()
@@ -84,7 +84,14 @@ def svm(train_v_list, train_y_list, pred_v_list):  # T is the input matrix
     print "Begin predicting SVM model..."
     pred_res_list = svm_model.predict(pred_v_list)
     print "### SVM model: end predicting! ###\n"
-    return pred_res_list
+    # return pred_res_list
+    return svm_model.coef_
+
+
+def svm_predict(x_M, W):
+    p_v = W.T[1] - W.T[0]                   # np array, <1, #latentfeature>
+    res_M = np.dot(x_M.toarray(), p_v.T)    # <#data point, #latent factor> * <#latentfeature, 1>
+    return res_M.tolist()
 
 
 def colb_ranking_output(res_list, output_filepath):

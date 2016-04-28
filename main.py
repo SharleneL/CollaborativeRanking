@@ -1,6 +1,6 @@
 # RUNNING COMMAND:
 # python main.py [uu|mm|pcc|pmf|colbrk-svm|colbrk-lr] [dot|cosine] [mean|weight] [k] [latent_factor_num] [output_filepath]
-# *example* python main.py colbrk-lr dot mean 5 20 ../../code_output/hw6/lr_test
+# *LR example* python main.py colbrk-lr dot mean 5 100 ../../code_output/hw6/lr_100
 
 __author__ = 'luoshalin'
 
@@ -21,7 +21,7 @@ from preprocess import get_trainM, get_qmM, get_pred_lists
 from user_sim import get_user_user_pred, uu_output
 from movie_sim import get_movie_movie_pred, mm_output
 from matrix_factorization import pmf_train, pmf_pred, pmf_output
-from colb_ranking import get_colbrk_train, get_colbrk_pred, svm, colb_ranking_output, analyze
+from colb_ranking import get_colbrk_train, get_colbrk_pred, svm_train, svm_predict, colb_ranking_output, analyze
 from lr.lr import lr_train_param, lr_predict
 
 
@@ -31,7 +31,7 @@ def main(argv):
 
     # ========== / PARAMETERS / ========== #
     # --- / CMD PARAMS / --- #
-    model_arg = sys.argv[1]         # [uu|mm|pcc|pmf]
+    model_arg = sys.argv[1]         # [uu|mm|pcc|pmf|colbrk-svm|colbrk-lr]
     sim_arg = sys.argv[2]           # [dot|cosine]
     weight_arg = sys.argv[3]        # [mean|weight]
     k = int(sys.argv[4])            # value of k in knn
@@ -109,9 +109,17 @@ def main(argv):
         dev_v_list = get_colbrk_pred(pred_uid_list, pred_mid_list, U, V)  # the vector list to predict
 
         # MODEL#1: svm (train & predict)
+        dev_M = sparse.csr_matrix(np.array(dev_v_list))          # <#datapoint, #latentfactor> convert list of list(vector) to csr matrix - each row is a vector
         if model_arg == 'colbrk-svm':
+            print 'main svm line 113'
             dev_pred_res_list = svm(train_v_list, train_y_list, dev_v_list)
+            print 'main svm line 115'
             colb_ranking_output(dev_pred_res_list, output_filepath)
+            print 'main svm line 117'
+
+            W = svm_train(train_v_list, train_y_list, dev_v_list)
+            svm_pred_res_list = svm_predict(dev_M, W)
+            colb_ranking_output(svm_pred_res_list, output_filepath)
 
         elif model_arg == 'colbrk-lr':
             # MODEL#2: lr
@@ -125,12 +133,10 @@ def main(argv):
             W = lr_train_param(lr_train_M, lr_train_stars_M, W_org, lr_eval_M, lr_eval_stars_M, lr_lmd, lr_alpha, lr_threshold, lr_gd_method, lr_batch_size)  # eval_M is the evaluation dataset
             print "line105"
 
-            # lr predict
-            lr_dev_M = sparse.csr_matrix(np.array(dev_v_list))          # <#datapoint, #latentfactor> convert list of list(vector) to csr matrix - each row is a vector
             print "line110"
-            lr_pred_res = lr_predict(lr_dev_M, W)
+            lr_pred_res_list = lr_predict(dev_M, W)
             # output - save to file
-            colb_ranking_output(lr_pred_res, output_filepath)
+            colb_ranking_output(lr_pred_res_list, output_filepath)
 
     print "END!"
     print time.time() - t0, "seconds wall time"
